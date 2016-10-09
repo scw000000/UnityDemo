@@ -10,10 +10,11 @@ public class Emitter : MonoBehaviour
    public float m_MaxRadius;
    public float m_MinRadius;
    public float m_GenerateSphereVolumeRadius;
-   public float m_MinVelocity;
-   public float m_MaxVelocity;
-   public Mesh m_Mesh;
+   public float m_MaxInitVelocity;
+   public float m_MinInitVelocity;
+   public Sprite m_Sprite;
    public GameObject m_Plane;
+   public GameObject m_MainCamera;
    //public Material m_Material;
    private float m_ObjectNeedToSpawn = 0.0f;
    private LinkedList< Particle > m_AliveParticles = new LinkedList<Particle>();
@@ -30,10 +31,9 @@ public class Emitter : MonoBehaviour
       Particle particle = particleObj.GetComponent<Particle>();
       particleObj.transform.position = gameObject.transform.position + Random.insideUnitSphere * m_GenerateSphereVolumeRadius;
 
-      //meshRenderer.material = m_Material;
       particle.m_MaxAge = Random.Range( m_MinAge, m_MaxAge );
       particle.m_Age = 0.0f;
-      particle.m_Velocity = Random.onUnitSphere * Random.Range( m_MinVelocity, m_MaxVelocity );
+      particle.m_Velocity = Random.onUnitSphere * Random.Range( m_MinInitVelocity, m_MaxInitVelocity );
       particle.m_Acceleration = new Vector3( 0.0f, -9.8f, 0.0f );
       particle.m_Radius = Random.Range( m_MinRadius, m_MaxRadius );
 
@@ -56,9 +56,10 @@ public class Emitter : MonoBehaviour
          {
          GameObject particleObj = new GameObject();
          Particle particle = particleObj.AddComponent<Particle>();
-         particleObj.AddComponent<MeshFilter>().mesh = m_Mesh;
-         particleObj.AddComponent<MeshRenderer>();
+         particle.m_SpriteRenderer = particleObj.AddComponent<SpriteRenderer>();
+         particle.m_SpriteRenderer.sprite = m_Sprite;
          particle.m_Plane = m_Plane;
+         particle.m_MainCamera = m_MainCamera;
          m_AliveParticles.AddLast( particle );
          SetParticleGameObject( particleObj );
          }

@@ -3,16 +3,14 @@ using System.Collections;
 
 public class CameraControl : MonoBehaviour
    {
-   public GameObject m_Player;
    public float m_ViewRotationSpeed;
-   private Vector3 m_Offset;
    private Quaternion m_InitialRotation;
    private Vector3 prevMousePos;
    private Vector3 currMousePos;
+
    // Use this for initialization
    void Start()
       {
-      m_Offset = transform.position - m_Player.transform.position;
       m_ViewRotationSpeed = 25.0f;
       m_InitialRotation = gameObject.transform.rotation;
       prevMousePos = Input.mousePosition;

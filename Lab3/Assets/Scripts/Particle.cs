@@ -10,6 +10,8 @@ public class Particle : MonoBehaviour
    public float m_Age = 0.0f;
    public float m_Mass;
    public float m_Radius;
+   public SpriteRenderer m_SpriteRenderer;
+   public GameObject m_MainCamera;
    private Vector3 m_PlaneNormal;
    private Vector3 m_PlanePos;
    public GameObject m_Plane
@@ -20,11 +22,9 @@ public class Particle : MonoBehaviour
          m_PlanePos = value.transform.position;
          }
       }
-   private MeshRenderer m_MeshRenderer;
    // Use this for initialization
    void Start()
       {
-      m_MeshRenderer = gameObject.GetComponent<MeshRenderer>();
       }
 
    bool IsAbovePlane( Vector3 nxtPosition )
@@ -37,11 +37,11 @@ public class Particle : MonoBehaviour
       float halfMaxAge = m_MaxAge / 2.0f;
       if( m_Age <= halfMaxAge )
          {
-         m_MeshRenderer.material.color = Color.Lerp( Color.red, Color.green, m_Age / halfMaxAge );
+         m_SpriteRenderer.color = Color.Lerp( Color.red, Color.green, m_Age / halfMaxAge );
          }
       else
          {
-         m_MeshRenderer.material.color = Color.Lerp( Color.green, Color.blue, ( m_Age - halfMaxAge ) / halfMaxAge );
+         m_SpriteRenderer.color = Color.Lerp( Color.green, Color.blue, ( m_Age - halfMaxAge ) / halfMaxAge );
          }
       }
 
@@ -75,6 +75,7 @@ public class Particle : MonoBehaviour
          m_Age += Time.deltaTime;
          UpdateMotion( Time.deltaTime );
          UpdateColor( Time.deltaTime );
+         gameObject.transform.LookAt( m_MainCamera.transform, gameObject.transform.up );
          }
       }
 
@@ -85,6 +86,6 @@ public class Particle : MonoBehaviour
 
    public void SetVisible( bool isVisible )
       {
-      m_MeshRenderer.enabled = isVisible;
+      m_SpriteRenderer.enabled = isVisible;
       }
    }
