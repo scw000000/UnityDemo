@@ -2,9 +2,9 @@
 using System.Collections;
 
 public class Predator : MonoBehaviour {
-   static int m_Fov = 55;
+   public int m_Fov = 55;
    private float m_Velocity = 1.0f;
-   private float m_ViewDistance = 20.0f;
+   public float m_ViewDistance = 20.0f;
    private GameObject m_CurrentTarget = null;
    private Vector3 m_RoamingGoal = new Vector3();
    //private float m_UpdateRoamDir
@@ -45,18 +45,8 @@ public class Predator : MonoBehaviour {
                }
             }
          }
-      // Override hunting direction for roaming if no prey is found
       if( newBestTarget != null )
          {
-         // Target changed
-         if( m_CurrentTarget == null || m_CurrentTarget.GetInstanceID() != newBestTarget.GetInstanceID() )
-            {
-            if( m_CurrentTarget != null )
-               {
-               StopChasing();
-               }
-            StartChasing( newBestTarget );
-            }
          m_CurrentTarget = newBestTarget;
          Quaternion newRotation = new Quaternion();
          bestHuntDir.Normalize();
@@ -68,13 +58,12 @@ public class Predator : MonoBehaviour {
          // Tracing failed or has reached roaming posisiton, set a random point and start roaming
          if( m_CurrentTarget != null || ( Vector3.SqrMagnitude( gameObject.transform.position - m_RoamingGoal ) <= 0.001 ) )
             {
-            // If was tracing prey, tell prey to stop being traced
-            if( m_CurrentTarget != null )
-               {
-               StopChasing();
-               }
+            m_CurrentTarget = null;
             SetRoamingGoal();
             }
+         Quaternion newRotation = new Quaternion();
+         newRotation.SetLookRotation( m_RoamingGoal - gameObject.transform.position, Vector3.up );
+         gameObject.transform.rotation = newRotation;
          }
 
        gameObject.transform.position += m_Velocity * Time.deltaTime * gameObject.transform.forward;
@@ -97,30 +86,12 @@ public class Predator : MonoBehaviour {
          }
       while( Physics.SphereCast( gameObject.transform.position, 0.5f, random3DCirleVec, out hitInfo, 3.0f ) );
       m_RoamingGoal = transform.position + 3.0f * random3DCirleVec;
-      Quaternion newRotation = new Quaternion();
-      newRotation.SetLookRotation( m_RoamingGoal - gameObject.transform.position, Vector3.up );
-      gameObject.transform.rotation = newRotation;
-      }
-
-   void StartChasing( GameObject prey )
-      {
-      var preyComponent = prey.GetComponent<Prey>();
-      preyComponent.StartChasingSelf( gameObject );
-      }
-
-   void StopChasing()
-      {
-      var preyComponent = m_CurrentTarget.GetComponent<Prey>();
-      preyComponent.StopChasingSelf( gameObject );
-      m_CurrentTarget = null;
       }
 
    void StopChasingPrey()
       {
       if( m_CurrentTarget != null )
          {
-         var preyComponent = m_CurrentTarget.GetComponent<Prey>();
-         preyComponent.StopChasingSelf( gameObject );
          m_CurrentTarget = null;
          SetRoamingGoal();
          }
