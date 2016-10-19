@@ -1,6 +1,21 @@
 using UnityEngine;
 using System.Collections;
 
+public class UTable
+   {
+   public int m_PointIdx;
+   public int m_SampleIdx;
+   public float m_U;
+   public float m_Distance;
+   public UTable( int pointIdx, int sampleIdx, float u, float distance )
+      {
+      m_PointIdx = pointIdx;
+      m_SampleIdx = sampleIdx;
+      m_U = u;
+      m_Distance = distance;
+      }
+   }
+
 public class CatmullRomCurveInterpolation : MonoBehaviour
    {
 	
@@ -19,9 +34,10 @@ public class CatmullRomCurveInterpolation : MonoBehaviour
 	const double DT = 0.01;
    public float m_Tao = 0.5f;
    int m_CurrIdx = 0;
-   bool m_ShouldUpdateSpeedFunct = true;
-   int m_DistanceSampleNum = 20;
-   System.Collections.Generic.KeyValuePair<float, float>[] m_DistanceToUFunct;
+   int m_DistanceSampleNum = 10;
+
+   
+   System.Collections.Generic.List<UTable> m_UTableList;
    /* Returns a point on a cubic Catmull-Rom/Blended Parabolas curve
 	 * u is a scalar value from 0 to 1
 	 * segment_number indicates which 4 points to use for interpolation
@@ -58,70 +74,128 @@ public class CatmullRomCurveInterpolation : MonoBehaviour
       {
 
 		controlPoints = new Vector3[NumberOfPoints];
-      m_DistanceToUFunct = new System.Collections.Generic.KeyValuePair<float, float>[ m_DistanceSampleNum ];
-      m_DistanceToUFunct[ 0 ] = new System.Collections.Generic.KeyValuePair<float, float>( 0.0f, 0.0f );
-      m_DistanceToUFunct[ m_DistanceSampleNum - 1 ] = new System.Collections.Generic.KeyValuePair<float, float>( 1.0f, 1.0f );
+      
       // set points randomly...
       controlPoints[0] = new Vector3(0,0,0);
 		for(int i = 1; i < NumberOfPoints; i++)
-		{
+		   {
 			controlPoints[i] = new Vector3(Random.Range(MinX,MaxX),Random.Range(MinY,MaxY),Random.Range(MinZ,MaxZ));
-		}
+		   }
 		
 		GenerateControlPointGeometry();
-	   }
+
+      m_UTableList = new System.Collections.Generic.List<UTable>();
+
+      UpdateUToDistanceFunction();
+      }
 
    void UpdateUToDistanceFunction()
       {
-      float deltaU = 1.0f / ( m_DistanceSampleNum - 1 );
-      float currU = 0.0f;
-      m_DistanceToUFunct[ 0 ] = new System.Collections.Generic.KeyValuePair<float, float>( 0.0f, 0.0f );
-      var prevPoint = controlPoints[ m_CurrIdx ];
       var distanceSum = 0.0f;
-      for( int i = 1; i < m_DistanceSampleNum; ++i )
+      
+      for( int i = 0; i < NumberOfPoints; ++i )
          {
-         currU += deltaU;
-         var currPoint = ComputePointOnCatmullRomCurve( currU, ( m_CurrIdx + 1 ) % controlPoints.Length );
-         var distance = Vector3.Distance( prevPoint, currPoint );
-         distanceSum += distance;
-         m_DistanceToUFunct[ i ] = new System.Collections.Generic.KeyValuePair<float, float>( currU, distanceSum );
-         prevPoint = currPoint;
+         float deltaU = 1.0f / ( m_DistanceSampleNum );
+         float currU = 0.0f;
+         var prevPoint = controlPoints[ i ];
+    //     m_DistanceToUFunct[ i, 0 ] = new System.Collections.Generic.KeyValuePair<float, float>( 0.0f, 0.0f );
+         m_UTableList.Add( new UTable( i, 0, 0f, 0f ) );
+         for( int j = 0; j < m_DistanceSampleNum; ++j )
+            {
+            currU += deltaU;
+            var currPoint = ComputePointOnCatmullRomCurve( currU, ( i + 1 ) % controlPoints.Length );
+            var distance = Vector3.Distance( prevPoint, currPoint );
+            distanceSum += distance;
+         //   m_DistanceToUFunct[ i, j + 1 ] = new System.Collections.Generic.KeyValuePair<float, float>( currU, distanceSum );
+            m_UTableList.Add( new UTable( i, j + 1, currU, distanceSum ) );
+            prevPoint = currPoint;
+            }
+         if( i > 0 )
+            {
+            //m_DistanceToUFunct[ i, 0 ] = new System.Collections.Generic.KeyValuePair<float, float>( 0.0f, m_DistanceToUFunct[ i - 1, m_DistanceSampleNum ].Value );
+            m_UTableList[ i * m_DistanceSampleNum + i ].m_Distance = m_UTableList[ i * m_DistanceSampleNum + i - 1 ].m_Distance;
+            }
          }
 
-      for( int i = 1; i < m_DistanceSampleNum; ++i )
+      for( int i = 0; i < NumberOfPoints; ++i )
          {
-         m_DistanceToUFunct[ i ] = new System.Collections.Generic.KeyValuePair<float, float>( m_DistanceToUFunct[ i ].Key, m_DistanceToUFunct[ i ].Value / distanceSum );
+         for( int j = 0; j < m_DistanceSampleNum + 1; ++j )
+            {
+            //  m_DistanceToUFunct[ i, j ] = new System.Collections.Generic.KeyValuePair<float, float>( m_DistanceToUFunct[ i, j ].Key, m_DistanceToUFunct[ i, j ].Value / distanceSum );
+            m_UTableList[ i * m_DistanceSampleNum + i + j ].m_Distance /= distanceSum;
+            }
+         // m_DistanceToUFunct[ i, m_DistanceSampleNum ] = new System.Collections.Generic.KeyValuePair<float, float>( 1f, m_DistanceToUFunct[ i, m_DistanceSampleNum ].Value );
+         m_UTableList[ i * m_DistanceSampleNum + i + m_DistanceSampleNum ].m_U = 1f;
          }
-      m_DistanceToUFunct[ m_DistanceSampleNum - 1 ] = new System.Collections.Generic.KeyValuePair<float, float>( 1.0f, 1.0f );
+      foreach( var sample in m_UTableList )
+         {
+       //  Debug.Log( sample.m_PointIdx + " " + sample.m_SampleIdx + " " + sample.m_U + " " + sample.m_Distance );
+         }
+      //m_DistanceToUFunct[ 0, 0 ] = new System.Collections.Generic.KeyValuePair<float, float>( 0.0f, 0.0f );
+  //    m_UTableList[ 0 ].
       }
 
-   float MapDistanceToU( float s )
+   void MapDistanceToU( ref int pointIdx, ref float u, float s )
       {
-      int tableIdx = 0;
-      while( tableIdx < m_DistanceSampleNum - 1 && s > m_DistanceToUFunct[ tableIdx + 1 ].Value )
+      s %= 1.0f;
+      int leftBound = 0;
+      int rightBound = m_UTableList.Count - 1;
+      while( leftBound < rightBound )
          {
-         ++tableIdx;
+         var midIdx = ( leftBound + rightBound ) / 2;
+         if( m_UTableList[ midIdx ].m_Distance > s )
+            {
+            rightBound = midIdx - 1;
+            }
+         // left <= s, test right
+         else if( m_UTableList[ midIdx + 1 ].m_Distance < s )
+            {
+            leftBound = midIdx + 1;
+            }
+         else
+            {
+            leftBound = midIdx;
+            break;
+            }
          }
-      float factor = ( s - m_DistanceToUFunct[ tableIdx ].Value ) / ( m_DistanceToUFunct[ tableIdx + 1 ].Value - m_DistanceToUFunct[ tableIdx + 1 ].Value );
-      return Mathf.Lerp( m_DistanceToUFunct[ tableIdx ].Key, m_DistanceToUFunct[ tableIdx + 1 ].Key, factor );
+      var leftPoint = m_UTableList[ leftBound ];
+      var rightPoint = m_UTableList[ leftBound + 1 ];
+      float factor = ( s - leftPoint.m_Distance ) / ( leftPoint.m_Distance - rightPoint.m_Distance );
+      u = Mathf.Lerp( leftPoint.m_U, rightPoint.m_U, factor );
+      Debug.Log( u );
+      pointIdx = leftPoint.m_PointIdx;
+      // Debug.Log( s + " : " + ret.m_PointIdx + " " + ret.m_SampleIdx + " " + ret.m_U + " " + ret.m_Distance );
+      //   int tableIdx = 0;
+      //  // pointIdx = 0; 
+      //   while( pointIdx < NumberOfPoints - 1 && s > m_DistanceToUFunct[ pointIdx, m_DistanceSampleNum ].Value )
+      //      {
+      //      ++pointIdx;
+      //      }
+
+      //   while( tableIdx < m_DistanceSampleNum && s > m_DistanceToUFunct[ pointIdx, tableIdx + 1 ].Value )
+      //      {
+      //      ++tableIdx;
+      //      }
+
+      //   float factor = ( s - m_DistanceToUFunct[ pointIdx, tableIdx ].Value ) / ( m_DistanceToUFunct[ pointIdx, tableIdx ].Value - m_DistanceToUFunct[ pointIdx, tableIdx + 1 ].Value );
+      //   u = Mathf.Lerp( m_DistanceToUFunct[ pointIdx, tableIdx ].Key, m_DistanceToUFunct[ pointIdx, tableIdx + 1 ].Key, factor );
+      ////   Debug.Log( s + " " + pointIdx + " " + tableIdx + " " + u );
       }
    // Update is called once per frame
    void Update ()
-      {
-		time += DT;
-      if( m_ShouldUpdateSpeedFunct )
-         {
-         UpdateUToDistanceFunction();
-         m_ShouldUpdateSpeedFunct = false;
-         }
+      { 
+		time += ( 0.001f  );
+      time %= 1f;
+      //    if( time >= 1.0f )
+      //       {
+      //       time %= 1.0f;
+      //       m_CurrIdx = ( m_CurrIdx + 1 ) % controlPoints.Length;
+      //       m_ShouldUpdateSpeedFunct = true;
+      //       }
+      float tempU = 0f;
+      MapDistanceToU( ref m_CurrIdx, ref tempU, (float) time );
 
-      if( time >= 1.0f )
-         {
-         time %= 1.0f;
-         m_CurrIdx = ( m_CurrIdx + 1 ) % controlPoints.Length;
-         m_ShouldUpdateSpeedFunct = true;
-         }
-		Vector3 temp = ComputePointOnCatmullRomCurve( MapDistanceToU( ( float )time ), ( m_CurrIdx + 1 ) % controlPoints.Length );
+      Vector3 temp = ComputePointOnCatmullRomCurve( tempU, ( m_CurrIdx + 1 ) % controlPoints.Length );
 		transform.position = temp;
 	   }
    }
