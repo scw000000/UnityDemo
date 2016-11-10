@@ -98,7 +98,6 @@ public class CatmullRomCurveInterpolation : MonoBehaviour
          float deltaU = 1.0f / ( m_DistanceSampleNum );
          float currU = 0.0f;
          var prevPoint = controlPoints[ i ];
-         //     m_DistanceToUFunct[ i, 0 ] = new System.Collections.Generic.KeyValuePair<float, float>( 0.0f, 0.0f );
          m_UTableList.Add( new UTable( i, 0, 0f, 0f ) );
          for( int j = 0; j < m_DistanceSampleNum; ++j )
             {
@@ -106,13 +105,11 @@ public class CatmullRomCurveInterpolation : MonoBehaviour
             var currPoint = ComputePointOnCatmullRomCurve( currU, ( i + 1 ) % controlPoints.Length );
             var distance = Vector3.Distance( prevPoint, currPoint );
             distanceSum += distance;
-            //   m_DistanceToUFunct[ i, j + 1 ] = new System.Collections.Generic.KeyValuePair<float, float>( currU, distanceSum );
             m_UTableList.Add( new UTable( i, j + 1, currU, distanceSum ) );
             prevPoint = currPoint;
             }
          if( i > 0 )
             {
-            //m_DistanceToUFunct[ i, 0 ] = new System.Collections.Generic.KeyValuePair<float, float>( 0.0f, m_DistanceToUFunct[ i - 1, m_DistanceSampleNum ].Value );
             m_UTableList[ i * m_DistanceSampleNum + i ].m_Distance = m_UTableList[ i * m_DistanceSampleNum + i - 1 ].m_Distance;
             }
          }
@@ -121,18 +118,10 @@ public class CatmullRomCurveInterpolation : MonoBehaviour
          {
          for( int j = 0; j < m_DistanceSampleNum + 1; ++j )
             {
-            //  m_DistanceToUFunct[ i, j ] = new System.Collections.Generic.KeyValuePair<float, float>( m_DistanceToUFunct[ i, j ].Key, m_DistanceToUFunct[ i, j ].Value / distanceSum );
             m_UTableList[ i * m_DistanceSampleNum + i + j ].m_Distance /= distanceSum;
             }
-         // m_DistanceToUFunct[ i, m_DistanceSampleNum ] = new System.Collections.Generic.KeyValuePair<float, float>( 1f, m_DistanceToUFunct[ i, m_DistanceSampleNum ].Value );
          m_UTableList[ i * m_DistanceSampleNum + i + m_DistanceSampleNum ].m_U = 1f;
          }
-      foreach( var sample in m_UTableList )
-         {
-         //  Debug.Log( sample.m_PointIdx + " " + sample.m_SampleIdx + " " + sample.m_U + " " + sample.m_Distance );
-         }
-      //m_DistanceToUFunct[ 0, 0 ] = new System.Collections.Generic.KeyValuePair<float, float>( 0.0f, 0.0f );
-      //    m_UTableList[ 0 ].
       }
 
    void MapDistanceToU( ref int pointIdx, ref double u, double s )
@@ -161,25 +150,7 @@ public class CatmullRomCurveInterpolation : MonoBehaviour
       var rightPoint = m_UTableList[ leftBound + 1 ];
       double factor = ( s - leftPoint.m_Distance ) / ( rightPoint.m_Distance - leftPoint.m_Distance );
       u = leftPoint.m_U + factor * ( rightPoint.m_U - leftPoint.m_U );
-      //  u = Math.Lerp( leftPoint.m_U, rightPoint.m_U, factor );
-      //    Debug.Log( u );
       pointIdx = leftPoint.m_PointIdx;
-      // Debug.Log( s + " : " + ret.m_PointIdx + " " + ret.m_SampleIdx + " " + ret.m_U + " " + ret.m_Distance );
-      //   int tableIdx = 0;
-      //  // pointIdx = 0; 
-      //   while( pointIdx < NumberOfPoints - 1 && s > m_DistanceToUFunct[ pointIdx, m_DistanceSampleNum ].Value )
-      //      {
-      //      ++pointIdx;
-      //      }
-
-      //   while( tableIdx < m_DistanceSampleNum && s > m_DistanceToUFunct[ pointIdx, tableIdx + 1 ].Value )
-      //      {
-      //      ++tableIdx;
-      //      }
-
-      //   float factor = ( s - m_DistanceToUFunct[ pointIdx, tableIdx ].Value ) / ( m_DistanceToUFunct[ pointIdx, tableIdx ].Value - m_DistanceToUFunct[ pointIdx, tableIdx + 1 ].Value );
-      //   u = Mathf.Lerp( m_DistanceToUFunct[ pointIdx, tableIdx ].Key, m_DistanceToUFunct[ pointIdx, tableIdx + 1 ].Key, factor );
-      ////   Debug.Log( s + " " + pointIdx + " " + tableIdx + " " + u );
       }
    // Update is called once per frame
    void Update()
@@ -195,8 +166,6 @@ public class CatmullRomCurveInterpolation : MonoBehaviour
       var rot = Quaternion.LookRotation( controlPoints[ 0 ] - transform.position, transform.up );
       rot *= Quaternion.Euler( 0, -90, 0 );
       transform.rotation = rot;
-    //  transform.Rotate( transform.up, 90 );
-    //  transform.rotation.SetLookRotation( controlPoints[ 0 ] - transform.position, transform.up );
      // Debug.DrawLine( transform.position, transform.position + transform.forward );
       }
    }
